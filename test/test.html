@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Focus Reader test</title>
+<style>body{font:18px Georgia,serif;max-width:700px;margin:30px auto;line-height:1.5}</style></head><body>
+<h1>The Science of Reading Faster</h1>
+<p>Reading is a complex cognitive process of decoding symbols to derive meaning. Café owners in São Paulo read naïve résumés über quickly. Visit <a href="https://example.com/page">https://example.com/page</a> or the <a href="#x" id="lnk">linked article here</a>. In 2024 we had 3rd-place results.</p>
+<pre><code id="code">function readFast(words) { return words.map(w =&gt; w); }</code></pre>
+<p>Type here: <input id="inp" value="input text stays untouched"> <textarea id="ta">textarea words untouched</textarea></p>
+<div contenteditable="true" id="ce">Editable content stays plain.</div>
+<p id="dyn-host"></p>
+<script>setTimeout(()=>{const p=document.createElement('p');p.id='dyn';p.textContent='Dynamically inserted paragraph appears later in time.';document.body.appendChild(p)},1500);
+document.getElementById('lnk').addEventListener('click',e=>{e.preventDefault();document.title='clicked'});</script>
+</body></html>

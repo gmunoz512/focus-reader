@@ -1,0 +1,122 @@
+name: TestFlight (iOS Safari extension)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    # Push builds run only after you set repo variable TESTFLIGHT_ENABLED=true (after adding secrets).
+    if: github.event_name == 'workflow_dispatch' || vars.TESTFLIGHT_ENABLED == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      BUNDLE_ID: ${{ vars.BUNDLE_ID || 'com.gmunoz.focusreader' }}
+      APP_NAME: Focus Reader
+      MARKETING_VERSION: ${{ vars.MARKETING_VERSION || '1.0.0' }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          missing=0
+          for v in TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            if [ -z "${!v}" ]; then echo "::error::Missing secret for $v"; missing=1; fi
+          done
+          exit $missing
+
+      - name: Select latest Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build web extension (src -> safari/extension)
+        run: ./build.sh
+
+      - name: Convert to Xcode project (iOS only)
+        run: |
+          xcrun safari-web-extension-converter safari/extension \
+            --project-location build/xcode \
+            --app-name "$APP_NAME" \
+            --bundle-identifier "$BUNDLE_ID" \
+            --ios-only --swift --copy-resources --no-open --no-prompt --force
+          find build/xcode -maxdepth 3 -print
+
+      - name: App icon, Info.plist and versions
+        run: |
+          PROJ_DIR="build/xcode/$APP_NAME"
+          echo "PROJ_DIR=$PROJ_DIR" >> "$GITHUB_ENV"
+          # Single-size 1024 app icon (Xcode 14+ generates the rest)
+          ICONSET=$(find "$PROJ_DIR" -type d -name AppIcon.appiconset | head -1)
+          rm -f "$ICONSET"/*
+          cp safari/AppIcon-1024.png "$ICONSET/AppIcon-1024.png"
+          cat > "$ICONSET/Contents.json" <<'JSON'
+          {"images":[{"filename":"AppIcon-1024.png","idiom":"universal","platform":"ios","size":"1024x1024"}],"info":{"author":"xcode","version":1}}
+          JSON
+          # Info.plist bits for every plist in app + extension
+          find "$PROJ_DIR" -name Info.plist -not -path "*/Resources/*" | while read -r p; do
+            /usr/libexec/PlistBuddy -c "Delete :ITSAppUsesNonExemptEncryption" "$p" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$p"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion \$(CURRENT_PROJECT_VERSION)" "$p" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString \$(MARKETING_VERSION)" "$p" 2>/dev/null || true
+          done
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          echo "KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Archive
+        run: |
+          PROJECT=$(find "$PROJ_DIR" -maxdepth 1 -name "*.xcodeproj" | head -1)
+          xcodebuild -list -project "$PROJECT"
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$APP_NAME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/FocusReader.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            INFOPLIST_KEY_ITSAppUsesNonExemptEncryption=NO
+
+      - name: Export and upload to App Store Connect / TestFlight
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/FocusReader.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "Uploaded build $MARKETING_VERSION ($BUILD_NUMBER). It appears in TestFlight after Apple finishes processing (5-30 min)."
+
+      - name: Cleanup key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"
