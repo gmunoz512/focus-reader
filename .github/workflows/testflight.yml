@@ -2,6 +2,10 @@ name: TestFlight (EMPsize iOS Safari extension)
 
 on:
   workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'CFBundleVersion override (default: run number)'
+        required: false
   push:
     branches: [main]
 
@@ -19,7 +23,7 @@ jobs:
       BUNDLE_ID: ${{ vars.BUNDLE_ID || 'com.gmunoz.focusreader' }}
       APP_NAME: EMPsize
       MARKETING_VERSION: ${{ vars.MARKETING_VERSION || '1.0.0' }}
-      BUILD_NUMBER: ${{ github.run_number }}
+      BUILD_NUMBER: ${{ inputs.build_number || github.run_number }}
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -78,6 +82,15 @@ jobs:
           grep -n PRODUCT_BUNDLE_IDENTIFIER "$PBX"
           printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
           echo "KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+
+      - name: Custom setup screen (container app)
+        run: |
+          n=0
+          while IFS= read -r f; do cp safari/app/Main.html "$f"; echo "replaced $f"; n=$((n+1)); done < <(find "$PROJ_DIR" -name Main.html)
+          [ "$n" -gt 0 ] || { echo "::error::Main.html not found"; exit 1; }
+          VC=$(find "$PROJ_DIR" -name ViewController.swift | head -1)
+          [ -n "$VC" ] || { echo "::error::ViewController.swift not found"; exit 1; }
+          cp safari/app/ViewController.swift "$VC"; echo "replaced $VC"
 
       # Archive unsigned (team has no registered devices, so dev profiles can't be made);
       # the export step signs with an App Store distribution cert/profile via cloud signing.
