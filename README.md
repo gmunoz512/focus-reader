@@ -5,7 +5,7 @@ A Chrome / Edge / Brave extension (Manifest V3) that bolds the start of each wor
 ## Install
 1. Open `chrome://extensions` (or `edge://extensions` / `brave://extensions`).
 2. Turn on **Developer mode**.
-3. Click **Load unpacked** and pick the `chrome/` folder (or unzip `empsize-chrome.zip`).
+3. Run `./build.sh`, then click **Load unpacked** and pick the generated `chrome/` folder.
 4. Pin the extension, then click its icon.
 
 ## Layout
@@ -27,7 +27,7 @@ A big ON/OFF switch for the current site, plus an "All sites" switch. Advanced s
 - Skips code, pre, inputs, textareas, contenteditable, svg, buttons and script/style. Skips URLs, emails, and words attached to digits.
 - Turning it off restores the original text nodes exactly.
 - Doesn't work on PDFs in the built-in viewer, the Chrome Web Store, `chrome://` pages, or inside iframes (top frame only). Canvas-rendered text (e.g. Google Docs) is unaffected.
-- To test: `cd /tmp/pw && npm i playwright && npx playwright install chromium`, then `NODE_PATH=/tmp/pw/node_modules node test/verify.js  (also test/linkedin.js)`
+- To test: run `./build.sh`, `npm i -D playwright && npx playwright install chromium`, then `node test/verify.js` (and `node test/linkedin.js`).
 
 ## TestFlight (iOS) through GitHub Actions
 `.github/workflows/testflight.yml` builds on a macOS runner and uploads to TestFlight. It needs these repo secrets: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the .p8 file contents) and `APPLE_TEAM_ID`. Optional repo variables: `BUNDLE_ID` (default `com.gmunoz.focusreader`), `MARKETING_VERSION` (default 1.0.0), and `TESTFLIGHT_ENABLED=true` to build on every push to main. Without that variable, you start it by hand from the Actions tab.
