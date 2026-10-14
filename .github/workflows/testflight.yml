@@ -77,6 +77,8 @@ jobs:
           printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
           echo "KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
 
+      # Archive unsigned (team has no registered devices, so dev profiles can't be made);
+      # the export step signs with an App Store distribution cert/profile via cloud signing.
       - name: Archive
         run: |
           PROJECT=$(find "$PROJ_DIR" -maxdepth 1 -name "*.xcodeproj" | head -1)
@@ -93,7 +95,7 @@ jobs:
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             MARKETING_VERSION="$MARKETING_VERSION" \
             INFOPLIST_KEY_ITSAppUsesNonExemptEncryption=NO
