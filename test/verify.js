@@ -42,7 +42,7 @@ const EXT = path.resolve(__dirname, '..', 'chrome'), SH = path.resolve(__dirname
   ok(badge === 'ON', 'badge shows ON when enabled (' + badge + ')');
   const pp = await ctx.newPage(); await pp.setViewportSize({ width: 300, height: 420 });
   await pp.goto(`chrome-extension://${extId}/popup.html`); await pp.waitForTimeout(600);
-  await pp.screenshot({ path: SH + '/popup.png' });
+  await pp.screenshot({ path: SH + '/popup-empsize.png' });
   await pp.click('summary'); await pp.waitForTimeout(200); await pp.screenshot({ path: SH + '/popup-more.png' });
   await pp.click('#global + span'); await pp.waitForTimeout(300);
   ok(await sw.evaluate(async () => (await chrome.storage.sync.get('globalOn')).globalOn) === true, 'popup All-sites switch writes storage');
