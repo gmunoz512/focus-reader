@@ -1,11 +1,11 @@
-# Focus Reader
+# EMPsize
 
 A Chrome / Edge / Brave extension (Manifest V3) that bolds the start of each word so your eye lands on word beginnings. This is an independent implementation. It is not affiliated with Bionic Reading® and does not use its API. Everything runs locally: no network calls and no remote code.
 
 ## Install
 1. Open `chrome://extensions` (or `edge://extensions` / `brave://extensions`).
 2. Turn on **Developer mode**.
-3. Click **Load unpacked** and pick the `chrome/` folder (or unzip `focus-reader-chrome.zip`).
+3. Click **Load unpacked** and pick the `chrome/` folder (or unzip `empsize-chrome.zip`).
 4. Pin the extension, then click its icon.
 
 ## Layout

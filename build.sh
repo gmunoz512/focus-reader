@@ -10,10 +10,9 @@ m['background']={'scripts':['background.js'],'persistent':False}   # iOS require
 m['browser_specific_settings']={'safari':{'strict_min_version':'16.4'}}
 json.dump(m,open('safari/extension/manifest.json','w'),indent=2)
 import zipfile,os
-for src,out in (('chrome','focus-reader-chrome.zip'),('safari/extension','focus-reader-safari-extension.zip')):
+for src,out in (('chrome','empsize-chrome.zip'),('safari/extension','empsize-safari-extension.zip')):
     z=zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED)
     for r,_,fs in os.walk(src):
         for f in fs: p=os.path.join(r,f); z.write(p,os.path.relpath(p,src))
 PY
-cp focus-reader-chrome.zip focus-reader.zip
 echo built

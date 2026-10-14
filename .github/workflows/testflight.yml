@@ -1,4 +1,4 @@
-name: TestFlight (iOS Safari extension)
+name: TestFlight (EMPsize iOS Safari extension)
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 45
     env:
       BUNDLE_ID: ${{ vars.BUNDLE_ID || 'com.gmunoz.focusreader' }}
-      APP_NAME: Focus Reader
+      APP_NAME: EMPsize
       MARKETING_VERSION: ${{ vars.MARKETING_VERSION || '1.0.0' }}
       BUILD_NUMBER: ${{ github.run_number }}
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -65,6 +65,8 @@ jobs:
           JSON
           # Info.plist bits for every plist in app + extension
           find "$PROJ_DIR" -name Info.plist -not -path "*/Resources/*" | while read -r p; do
+            /usr/libexec/PlistBuddy -c "Delete :CFBundleDisplayName" "$p" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $APP_NAME" "$p"
             /usr/libexec/PlistBuddy -c "Delete :ITSAppUsesNonExemptEncryption" "$p" 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$p"
             /usr/libexec/PlistBuddy -c "Set :CFBundleVersion \$(CURRENT_PROJECT_VERSION)" "$p" 2>/dev/null || true
@@ -88,7 +90,7 @@ jobs:
             -scheme "$APP_NAME" \
             -configuration Release \
             -destination "generic/platform=iOS" \
-            -archivePath "$RUNNER_TEMP/FocusReader.xcarchive" \
+            -archivePath "$RUNNER_TEMP/EMPsize.xcarchive" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
@@ -115,7 +117,7 @@ jobs:
           </dict></plist>
           PLIST
           xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/FocusReader.xcarchive" \
+            -archivePath "$RUNNER_TEMP/EMPsize.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath "$RUNNER_TEMP/export" \
             -allowProvisioningUpdates \
